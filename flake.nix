@@ -1,5 +1,7 @@
 {
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-20.03";
+  inputs.cardano-node.url = "github:input-output-hk/cardano-node/1.26.2";
+  inputs.cardano-db-sync.url = "github:input-output-hk/cardano-db-sync/9.0.0";
 
   outputs = { self, nixpkgs }: {
 
@@ -15,13 +17,23 @@
 
             # Network configuration.
             networking.useDHCP = false;
-            networking.firewall.allowedTCPPorts = [ 80 ];
+            networking.firewall.allowedTCPPorts = [ 5432 ];
 
-            # Enable a web server.
-            services.httpd = {
+            services.postgresql = {
               enable = true;
-              adminAddr = "morty@example.org";
             };
+
+            services.cardano-db-sync = {
+              enable = true;
+              cluster = "testnet";
+              socketPath = config.services.cardano-node.socketPath;
+            };
+
+            services.cardano-node = {
+              enable = true;
+              environment = "testnet";
+              socketPath = "/var/run/cardano-node/cardano-node.socket";
+              
           })
         ];
     };
