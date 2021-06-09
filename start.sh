@@ -10,8 +10,7 @@ if nixos-container status "$name"; then
     nixos-container update "$name" --flake "$flake"
 else
     echo "Creating"
-    nixos-container create "$name" --flake "$flake" \
-        --local-address 10.240.1.2 --host-address 10.240.1.1
+    nixos-container create "$name" --flake "$flake" "$@"
 fi
 
 nixos-container start "$name"
