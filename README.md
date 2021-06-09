@@ -31,6 +31,8 @@ host$ export container_ip=10.240.1.2
 host$ psql -U cdbsync -h $container_ip cdbsync
 ```
 
+You could try some of the [Interesting SQL queries](https://github.com/input-output-hk/cardano-db-sync/blob/master/doc/interesting-queries.md).
+
 ## Backing up the database
 
 ```shell
