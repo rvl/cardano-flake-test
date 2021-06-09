@@ -1,10 +1,11 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-20.03";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.05";
   inputs.cardano-node.url = "github:input-output-hk/cardano-node/1.27.0";
   inputs.cardano-db-sync.url = "github:input-output-hk/cardano-db-sync";
 
   outputs = { self, nixpkgs, cardano-node, cardano-db-sync }: let
     environment = "mainnet";
+    pgAllowHost = "0.0.0.0/0";
   in {
     nixosConfigurations.container = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
@@ -17,24 +18,19 @@
 
             # Network configuration.
             networking = {
-              useDHCP = false;
+              useDHCP = true;
               resolvconf.enable = true;
               useHostResolvConf = false;
-              defaultGateway = "10.240.1.1";
-              nameservers = [ config.networking.defaultGateway.address ];
-              interfaces.eth0.ipv4.addresses = [ {
-                address = "10.240.1.2";
-                prefixLength = 24;
-              } ];
-              firewall.allowedTCPPorts = [ 5432 ];
+              firewall.allowedTCPPorts = [ config.services.postgresql.port ];
             };
 
             services.postgresql = {
               enable = true;
               enableTCPIP = true;
-              # log in with psql -h 10.240.1.2 cdbsync cdbsync
+              # Completely disable auth for the database so we can:
+              #   psql -U cdbsync -h $container_ip cdbsync
               authentication = ''
-                host ${config.services.cardano-db-sync.postgres.database} ${config.services.cardano-db-sync.postgres.user} ${config.networking.defaultGateway.address}/32 trust
+                host ${config.services.cardano-db-sync.postgres.database} ${config.services.cardano-db-sync.postgres.user} ${pgAllowHost} trust
               '';
               ensureDatabases = [ config.services.cardano-db-sync.postgres.database ];
               ensureUsers = [ {
@@ -65,8 +61,12 @@
 
             # Let cardano-db-sync use the cardano-node socket file
             users.users.${config.services.cardano-db-sync.user} = {
+              isNormalUser = true; # workaround for 21.05
               extraGroups = [ "cardano-node" ];
             };
+
+            # workaround required for 21.05
+            users.users.cardano-node.isNormalUser = true;
 
             # Let 'nixos-version --json' know about the Git revision
             # of this flake.
